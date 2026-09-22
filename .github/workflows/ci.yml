@@ -46,3 +46,21 @@ jobs:
           platforms: linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          
+      - name: 更新 deploy-repo
+        env:
+          DEPLOY_PAT: ${{ secrets.DEPLOY_PAT }}
+        run: |
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
+          TAG="sha-${GITHUB_SHA::7}"
+
+          git clone https://x-access-token:${DEPLOY_PAT}@github.com/amil233/zero-to-tech-deploy
+          cd deploy-repo/frontend/overlays/production
+
+          curl -sL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.8.1/kustomize_v5.8.1_linux_amd64.tar.gz" | tar xz
+          ./kustomize edit set image ${IMAGE}=${IMAGE}:${TAG}
+
+          git config user.name "ci-bot"
+          git config user.email "ci-bot@users.noreply.github.com"
+          git commit -am "frontend: deploy ${TAG}"
+          git push
